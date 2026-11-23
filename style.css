@@ -34,3 +34,43 @@ main {
   border-radius: 8px;
   text-decoration: none;
   }
+.translator {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  text-align: right;
+}
+
+.langs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+select, textarea {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+textarea {
+  height: 150px;
+  resize: vertical;
+}
+
+button.btn {
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.result {
+  margin-top: 20px;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  min-height: 60px;
+} 
