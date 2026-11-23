@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الترجمة | مؤسسة الترجمة</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <h1>مؤسسة الترجمة</h1>
+    <nav>
+      <a href="index.html">الرئيسية</a>
+      <a href="translate.html">الترجمة</a>
+    </nav>
+  </header>
+
+  <main class="translator">
+    <h2>الترجمة</h2>
+
+    <div class="langs">
+      <select id="fromLang">
+        <option value="ar">العربية</option>
+        <option value="en">الإنجليزية</option>
+        <option value="fr">الفرنسية</option>
+      </select>
+
+      <select id="toLang">
+        <option value="en">الإنجليزية</option>
+        <option value="ar">العربية</option>
+        <option value="fr">الفرنسية</option>
+      </select>
+    </div>
+
+    <textarea id="inputText" placeholder="اكتب النص هنا..."></textarea>
+
+    <button id="translateBtn" class="btn">ترجم</button>
+
+    <div id="result" class="result">ستظهر الترجمة هنا</div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+                                       </html>
