@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Marion &amp; Shelby: Catch the Love</title>
+<style>
+:root{--pink:#ff5fa2;--deep:#c2185b;--card:rgba(255,240,247,.92);--ink:#8a1f55;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--card:rgba(70,20,50,.9);--ink:#ffd3e6}}
+html,body{height:100%;margin:0;overflow:hidden;background:#ffb3d1;font-family:Georgia,'Times New Roman',serif;touch-action:none;user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#hud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}
+#count{background:var(--card);color:var(--ink);padding:8px 16px;border-radius:24px;font-size:20px;font-weight:bold;box-shadow:0 3px 10px rgba(194,24,91,.25)}
+.btns{display:flex;gap:8px;pointer-events:auto}
+.btn{background:var(--pink);color:#fff;border:0;border-radius:22px;padding:9px 14px;font:bold 14px Georgia,serif;cursor:pointer;box-shadow:0 3px 8px rgba(194,24,91,.35)}
+#msg{position:fixed;left:50%;top:22%;transform:translateX(-50%);max-width:84%;text-align:center;background:var(--card);color:var(--ink);padding:12px 20px;border-radius:20px;font-size:18px;font-style:italic;opacity:0;transition:opacity .5s;pointer-events:none;box-shadow:0 4px 14px rgba(194,24,91,.25)}
+#msg.show{opacity:1}
+#big{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.8);width:min(86%,420px);box-sizing:border-box;text-align:center;background:var(--card);color:var(--ink);padding:28px 24px;border-radius:28px;font-size:22px;line-height:1.4;opacity:0;transition:opacity .6s,transform .6s;pointer-events:none;box-shadow:0 8px 30px rgba(194,24,91,.4);border:3px solid var(--pink)}
+#big.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#big small{display:block;margin-bottom:10px;font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--deep)}
+#start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,179,209,.55);text-align:center;color:#fff;text-shadow:0 2px 8px rgba(194,24,91,.6)}
+#start h1{font-size:34px;margin:0 20px 8px}
+#start p{margin:0 24px 22px;font-size:17px}
+#start .btn{font-size:20px;padding:14px 32px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"><div id="count">💗 0</div>
+<div class="btns"><label class="btn" for="song">♪ Add song</label><input id="song" type="file" accept="audio/*" hidden><button class="btn" id="mute">🔊</button></div></div>
+<div id="msg"></div><div id="big"></div>
+<div id="start"><h1>Marion &amp; Shelby</h1><p>Drag to move and catch the falling hearts.<br>No winning, no losing. Just love. 💕</p><button class="btn" id="go">Start</button></div>
+<audio id="aud" loop></audio>
+<script>
+const cv=document.getElementById('c'),x=cv.getContext('2d');
+let W,H,dpr;
+function size(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',size);size();
+
+const MSG=["You make my whole world softer.","Shelby purrs because she knows how much I love you.","Every heart I catch is yours.","Home is wherever you are.","Shelby says you give the best cuddles.","I fall for you again every single day.","You are my favorite hello and my hardest goodbye.","Even Shelby would choose you over treats.","My heart does a little dance when you smile.","With you and Shelby, everything feels like home.","You are the sweetest part of my day.","Shelby has been staring at the door, waiting for you.","I never knew love could feel this cozy.","You are my sunshine on the cloudiest days.","Thank you for being exactly you.","Shelby voted: you are the best human.","Love looks a lot like you.","I would catch a million hearts just for you.","Your laugh is my favorite song.","Shelby and I are your biggest fans.","Every moment with you is a little miracle.","You hold my heart so gently.","If hearts were stars, you would be a galaxy.","Shelby curled up and purred: she loves you too.","You make ordinary days feel magical.","I am so lucky to love you.","Close your eyes: that warm feeling is me thinking of you.","Shelby knocked a heart off the shelf, just for you.","You are my calm and my favorite adventure.","Forever still sounds too short with you.","Soft hands, big heart, my whole heart.","Shelby wants you to know she saved you the warm spot.","You are loved more than words can hold.","My heart found its home in you.","Little moments with you are my treasures.","Shelby blinks slowly at you: the cat way of saying I love you.","Thank you for every quiet, perfect moment.","You are the reason I believe in sweet endings.","Wrapped in love, wrapped in fur, wrapped in you.","Every sunset looks better with you in it."];
+const BIG=["You are my favorite person in the whole wide world, and Shelby agrees. 💗","Twenty-five hearts caught, and every one still belongs to you.","If love had a color, it would be this exact sunset, and it would be you.","Thank you for being my home, my comfort, and my best friend.","Marion, Shelby and love. That is all I will ever need.","You make every ordinary day feel like a fairytale. I love you.","Whatever tomorrow brings, I will be holding you close, just like Shelby.","My heart is yours, completely and forever.","Each heart is a little promise: I choose you, every day.","You are loved, you are cherished, and you are always enough."];
+
+let recent=[],bigIdx=0;
+function pick(){let m;do{m=Math.floor(Math.random()*MSG.length)}while(recent.includes(m));recent.push(m);if(recent.length>14)recent.shift();return MSG[m]}
+
+let px=0,tx=0,hearts=[],count=0,t=0,spawn=0,started=false,petals=[];
+px=tx=innerWidth/2;
+function move(e){if(!started)return;tx=(e.touches?e.touches[0].clientX:e.clientX)}
+addEventListener('pointermove',move);addEventListener('touchmove',move,{passive:true});
+const keys={};addEventListener('keydown',e=>keys[e.key]=1);addEventListener('keyup',e=>keys[e.key]=0);
+
+function heart(cx,cy,r,col,rot=0){x.save();x.translate(cx,cy);x.rotate(rot);x.fillStyle=col;x.beginPath();x.moveTo(0,r*.9);x.bezierCurveTo(-r*1.5,-r*.1,-r*.8,-r*1.2,0,-r*.4);x.bezierCurveTo(r*.8,-r*1.2,r*1.5,-r*.1,0,r*.9);x.fill();x.restore()}
+
+function bg(){
+ let g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#ff9ec4');g.addColorStop(.45,'#ffc2d9');g.addColorStop(.7,'#ffd9b8');g.addColorStop(1,'#ffb3d1');
+ x.fillStyle=g;x.fillRect(0,0,W,H);
+ x.fillStyle='rgba(255,246,200,.9)';x.beginPath();x.arc(W*.75,H*.5,Math.min(W,H)*.11,0,7);x.fill();
+ x.fillStyle='rgba(255,255,255,.55)';
+ for(let i=0;i<4;i++){let cx=((i*W*.33+t*8*(i%2?1:.6))%(W+200))-100,cy=H*(.1+i*.07);x.beginPath();x.ellipse(cx,cy,60,16,0,0,7);x.ellipse(cx+30,cy-8,40,14,0,0,7);x.fill()}
+ hill(H*.62,'#f19bc0',.004,0);hill(H*.7,'#e57fae',.006,2);
+ for(let i=0;i<6;i++){tree(W*(.08+i*.19),H*.7+((i%2)*H*.03),i%2?.8:1)}
+ x.fillStyle='#d96aa0';x.fillRect(0,H*.8,W,H*.2);
+ let gg=x.createLinearGradient(0,H*.8,0,H);gg.addColorStop(0,'#f08cb8');gg.addColorStop(1,'#c95b92');x.fillStyle=gg;x.fillRect(0,H*.8,W,H*.2);
+ x.strokeStyle='rgba(255,200,225,.6)';x.lineWidth=2;
+ for(let i=0;i<W;i+=14){let h=6+((i*7)%9);x.beginPath();x.moveTo(i,H*.8+((i*3)%10));x.lineTo(i+2,H*.8-h+((i*3)%10));x.stroke()}
+}
+function hill(y,col,f,o){x.fillStyle=col;x.beginPath();x.moveTo(0,H);for(let i=0;i<=W;i+=10)x.lineTo(i,y+Math.sin(i*f*3+o)*H*.04);x.lineTo(W,H);x.fill()}
+function tree(cx,by,s){const h=H*.16*s;x.fillStyle='#9c4a78';x.fillRect(cx-4*s,by-h*.4,8*s,h*.4);x.fillStyle='#ff8fbf';x.beginPath();x.arc(cx,by-h*.6,h*.32,0,7);x.arc(cx-h*.22,by-h*.45,h*.22,0,7);x.arc(cx+h*.22,by-h*.45,h*.22,0,7);x.fill();x.fillStyle='#ffb0d2';x.beginPath();x.arc(cx-h*.08,by-h*.7,h*.15,0,7);x.fill()}
+
+function marion(cx,gy,ch){
+ const u=ch/100,sw=Math.sin(t*3)*.6;
+ x.save();x.translate(cx,gy);x.scale(u,u);
+ const skin='#ffdcc8',hair='#f4f0f6',hairS='#d9d2e0';
+ // legs and shoes
+ x.fillStyle='#d9c9a6';x.fillRect(-10,-42,9,36);x.fillRect(1,-42,9,36);
+ x.fillStyle='#fff';x.beginPath();x.ellipse(-6,-3,7,4,0,0,7);x.ellipse(6,-3,7,4,0,0,7);x.fill();
+ x.fillStyle='#d9c9a6';rr(-12,-50,24,12,4);
+ x.fillStyle=skin;x.fillRect(-10,-56,20,8);
+ // back hair
+ x.fillStyle=hairS;rr(-15,-98,30,40,12);
+ // lace top
+ x.fillStyle='#fffaf5';rr(-12,-76,24,22,6);
+ x.strokeStyle='#e6d6d0';x.lineWidth=.7;
+ for(let i=-9;i<=9;i+=6)for(let j=-72;j<-56;j+=6){x.beginPath();x.arc(i,j,2,0,7);x.stroke()}
+ // head
+ x.fillStyle=skin;x.beginPath();x.arc(0,-88,11,0,7);x.fill();
+ x.fillStyle=hair;x.beginPath();x.arc(0,-90,12.5,Math.PI,0);x.lineTo(12.5,-76);x.quadraticCurveTo(14,-72,9,-71);x.lineTo(8,-84);x.quadraticCurveTo(3,-90,0,-99);x.quadraticCurveTo(-3,-90,-8,-84);x.lineTo(-9,-71);x.quadraticCurveTo(-14,-72,-12.5,-76);x.closePath();x.fill();
+ x.strokeStyle=hairS;x.lineWidth=.8;x.beginPath();x.moveTo(0,-101);x.lineTo(0,-94);x.stroke();
+ x.fillStyle='#5b3a4a';x.beginPath();x.arc(-4,-86,1.3,0,7);x.arc(4,-86,1.3,0,7);x.fill();
+ x.fillStyle='rgba(255,120,160,.5)';x.beginPath();x.arc(-7,-82,2.3,0,7);x.arc(7,-82,2.3,0,7);x.fill();
+ x.strokeStyle='#c2185b';x.lineWidth=1;x.beginPath();x.arc(0,-82,3,.2,Math.PI-.2);x.stroke();
+ // Shelby the tabby
+ const bob=Math.sin(t*2)*.8;
+ x.save();x.translate(0,bob);
+ x.fillStyle='#9a7b55';x.beginPath();x.ellipse(0,-58,17,11,0,0,7);x.fill();
+ x.strokeStyle='#4b3a28';x.lineWidth=1.6;
+ for(let i=-10;i<=10;i+=5){x.beginPath();x.moveTo(i,-67);x.lineTo(i+1,-60);x.stroke()}
+ x.beginPath();x.moveTo(15,-55);x.quadraticCurveTo(26,-50,22,-40+sw*3);x.lineWidth=3.5;x.strokeStyle='#8a6b47';x.stroke();
+ x.fillStyle='#9a7b55';x.beginPath();x.arc(0,-70,9.5,0,7);x.fill();
+ x.beginPath();x.moveTo(-9,-74);x.lineTo(-8,-84);x.lineTo(-2,-77);x.moveTo(9,-74);x.lineTo(8,-84);x.lineTo(2,-77);x.fill();
+ x.fillStyle='#e8b9a0';x.beginPath();x.moveTo(-7.5,-76);x.lineTo(-7,-81);x.lineTo(-4,-77);x.moveTo(7.5,-76);x.lineTo(7,-81);x.lineTo(4,-77);x.fill();
+ x.strokeStyle='#4b3a28';x.lineWidth=1.2;x.beginPath();x.moveTo(0,-79);x.lineTo(0,-75);x.moveTo(-4,-78);x.lineTo(-3.5,-75);x.moveTo(4,-78);x.lineTo(3.5,-75);x.stroke();
+ x.fillStyle='#e0a030';x.beginPath();x.ellipse(-4,-70,2.8,3.2,0,0,7);x.ellipse(4,-70,2.8,3.2,0,0,7);x.fill();
+ x.fillStyle='#2a1a10';x.beginPath();x.ellipse(-4,-70,1,2.5,0,0,7);x.ellipse(4,-70,1,2.5,0,0,7);x.fill();
+ x.fillStyle='#fff';x.beginPath();x.arc(-3.4,-71,.8,0,7);x.arc(4.6,-71,.8,0,7);x.fill();
+ x.fillStyle='#f3a0a8';x.beginPath();x.arc(0,-66.5,1.3,0,7);x.fill();
+ x.fillStyle='#e8d8c0';x.beginPath();x.ellipse(0,-63,4,2.5,0,0,7);x.fill();
+ x.restore();
+ // arms hugging cat
+ x.lineCap='round';x.strokeStyle=skin;x.lineWidth=5;
+ x.beginPath();x.moveTo(-11,-72);x.quadraticCurveTo(-18,-60,-8,-54);x.stroke();
+ x.beginPath();x.moveTo(11,-72);x.quadraticCurveTo(18,-60,8,-54);x.stroke();
+ x.strokeStyle='#4b3a4a';x.lineWidth=.9;x.beginPath();x.arc(-15,-63,2.2,0,7);x.moveTo(-15,-65.5);x.lineTo(-15,-60.5);x.stroke();
+ x.restore();
+}
+function rr(a,b,w,h,r){x.beginPath();x.roundRect(a,b,w,h,r);x.fill()}
+
+const bigEl=document.getElementById('big'),msgEl=document.getElementById('msg'),cnt=document.getElementById('count');
+let msgT,bigT;
+function say(s){msgEl.textContent=s;msgEl.classList.add('show');clearTimeout(msgT);msgT=setTimeout(()=>msgEl.classList.remove('show'),3200)}
+function special(){bigEl.innerHTML='<small>A little something for you</small>'+BIG[bigIdx++%BIG.length];bigEl.classList.add('show');clearTimeout(bigT);bigT=setTimeout(()=>bigEl.classList.remove('show'),5500)}
+
+let ac;function blip(){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=700+Math.random()*300;g.gain.setValueAtTime(.12,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.25);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+.25)}catch(e){}}
+
+let last=0;
+function loop(ts){
+ const dt=Math.min((ts-last)/1000||0,.05);last=ts;t+=dt;
+ if(started){
+  if(keys.ArrowLeft||keys.a)tx-=420*dt;if(keys.ArrowRight||keys.d)tx+=420*dt;
+  tx=Math.max(30,Math.min(W-30,tx));
+  const speed=110+Math.min(count*2.4,260);
+  spawn-=dt;if(spawn<=0){spawn=Math.max(.45,1.1-count*.012);hearts.push({x:30+Math.random()*(W-60),y:-20,r:13+Math.random()*7,vy:speed*(.9+Math.random()*.3),ph:Math.random()*6,rot:0})}
+  px+=(tx-px)*Math.min(1,dt*12);
+ }
+ const ch=Math.min(H*.3,230),gy=H*.9;
+ bg();
+ for(let i=hearts.length-1;i>=0;i--){const h=hearts[i];h.y+=h.vy*dt;h.ph+=dt*2;h.rot=Math.sin(h.ph)*.3;const hx=h.x+Math.sin(h.ph)*10;
+  heart(hx,h.y,h.r,'#ff2f7d',h.rot);x.fillStyle='rgba(255,255,255,.55)';x.beginPath();x.arc(hx-h.r*.45,h.y-h.r*.35,h.r*.2,0,7);x.fill();
+  const catY=gy-ch*.7;
+  if(Math.abs(hx-px)<ch*.26&&Math.abs(h.y-catY)<ch*.22){hearts.splice(i,1);count++;cnt.textContent='💗 '+count;blip();
+   for(let k=0;k<6;k++)petals.push({x:hx,y:h.y,vx:(Math.random()-.5)*160,vy:-Math.random()*140,l:1});
+   if(count%25===0)special();else say(pick());continue}
+  if(h.y>H+30)hearts.splice(i,1)}
+ marion(px,gy,ch);
+ for(let i=petals.length-1;i>=0;i--){const p=petals[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=300*dt;p.l-=dt*1.4;if(p.l<=0){petals.splice(i,1);continue}x.globalAlpha=p.l;heart(p.x,p.y,5,'#fff');x.globalAlpha=1}
+ requestAnimationFrame(loop)
+}
+requestAnimationFrame(loop);
+
+const aud=document.getElementById('aud'),mute=document.getElementById('mute');let hasSong=false;
+document.getElementById('song').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;aud.src=URL.createObjectURL(f);aud.volume=.6;hasSong=true;aud.play().catch(()=>{});say('Song loaded ♪')});
+mute.onclick=()=>{aud.muted=!aud.muted;mute.textContent=aud.muted?'🔇':'🔊'};
+document.getElementById('go').onclick=()=>{document.getElementById('start').style.display='none';started=true;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)()}catch(e){}if(hasSong)aud.play().catch(()=>{});say('Catch the hearts, Marion! 💕')};
+</script>
+</body>
+</html>
